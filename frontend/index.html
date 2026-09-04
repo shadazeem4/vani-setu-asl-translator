@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vani-Setu | ASL Sign Language Translator</title>
+  <meta name="description" content="Vani-Setu: Real-time ASL sign language translator bridging voice and gesture">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="ambient"></div>
+
+  <!-- LOADER -->
+  <div id="loader">
+    <div class="ld-title">Vani-Setu</div>
+    <div class="ld-spin"></div>
+    <div class="ld-msg">Loading AI hand detection model...</div>
+  </div>
+
+  <!-- PERMISSION -->
+  <div id="perm" class="gone">
+    <h2>Vani-Setu</h2>
+    <p>Real-time ASL sign language translator that bridges voice and gesture. Uses your camera locally — no data leaves your device.</p>
+    <button class="start-btn" id="startBtn">Start Camera</button>
+  </div>
+
+  <!-- APP -->
+  <div id="app" style="opacity:0;transition:opacity 0.6s;">
+    <header>
+      <div class="logo">
+        <span class="logo-icon">&#129295;</span>
+        <span class="logo-text">Vani-Setu</span>
+      </div>
+      <div class="tagline">Bridging Voice &amp; Sign Language</div>
+    </header>
+
+    <main>
+      <!-- LEFT: Camera -->
+      <section class="cam-col">
+        <div class="cam-wrap" id="camWrap">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas id="canvas"></canvas>
+          <div class="badge mode-badge phrase" id="modeBadge">PHRASE</div>
+          <div class="badge hand-badge none" id="handBadge">NO HAND</div>
+        </div>
+        <div class="finger-bar" id="fingers">
+          <div class="fing" id="f0">THUMB</div>
+          <div class="fing" id="f1">INDEX</div>
+          <div class="fing" id="f2">MIDDLE</div>
+          <div class="fing" id="f3">RING</div>
+          <div class="fing" id="f4">PINKY</div>
+        </div>
+        <div class="toggle-row">
+          <div class="mode-pill">
+            <button class="pill-opt active-phrase" id="pillPhrase">PHRASE</button>
+            <button class="pill-opt" id="pillSpell">SPELL</button>
+          </div>
+        </div>
+
+        <div class="card log-card">
+          <div class="log-label">PAST SESSIONS</div>
+          <div class="log-list" id="historyList">
+            <div class="log-placeholder">Loading saved sessions...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Info -->
+      <section class="info-col">
+        <div class="sign-card" id="signCard">
+          <div class="sign-label">DETECTED SIGN</div>
+          <div class="sign-text" id="signText">...</div>
+          <div class="sign-desc" id="signDesc">Show your hand to begin</div>
+        </div>
+
+        <div class="card trans-card">
+          <div class="trans-label">TRANSLATION</div>
+          <div class="trans-text" id="transText">Show signs to translate...<span class="cur"></span></div>
+        </div>
+
+        <div class="word-bar">
+          <span class="wl">WORD:</span>
+          <span class="wt" id="wordText">...</span>
+        </div>
+
+        <div class="ctrl-row">
+          <button class="btn btn-gold" id="btnSpeak">Speak</button>
+          <button class="btn" id="btnSpace">Space</button>
+          <button class="btn" id="btnDel">Delete</button>
+          <button class="btn" id="btnEnter">Sentence</button>
+          <button class="btn" id="btnClear">Clear</button>
+          <button class="btn btn-voice" id="btnVoice">Voice ON</button>
+        </div>
+
+        <div class="card log-card">
+          <div class="log-label">ACTIVITY LOG</div>
+          <div class="log-list" id="logList">
+            <div class="log-placeholder" id="logPlaceholder">Detected signs will appear here...</div>
+          </div>
+        </div>
+
+        <div class="stats-bar">
+          <div class="stat"><span class="stat-num" id="stSigns">0</span><span class="stat-lbl">Signs</span></div>
+          <div class="stat"><span class="stat-num" id="stWords">0</span><span class="stat-lbl">Words</span></div>
+          <div class="stat"><span class="stat-num" id="stSent">0</span><span class="stat-lbl">Sentences</span></div>
+        </div>
+
+        <div class="kb">
+          <kbd>M</kbd> Mode <kbd>Space</kbd> Word <kbd>Enter</kbd> Sentence
+          <kbd>V</kbd> Voice <kbd>S</kbd> Speak <kbd>C</kbd> Clear
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
