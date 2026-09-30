@@ -25,6 +25,17 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def no_cache(request, call_next):
+    """Tell the browser never to cache the app files, so design/code changes
+    always show up immediately on reload (no stale styles or scripts)."""
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 class TranslationIn(BaseModel):
     text: str
     mode: str
