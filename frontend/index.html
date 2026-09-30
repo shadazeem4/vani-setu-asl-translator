@@ -5,36 +5,67 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vani-Setu | ASL Sign Language Translator</title>
   <meta name="description" content="Vani-Setu: Real-time ASL sign language translator bridging voice and gesture">
+  <meta name="theme-color" content="#F3ECDF">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-  <div class="ambient"></div>
+  <div class="paper-bg" aria-hidden="true"></div>
 
   <!-- LOADER -->
   <div id="loader">
+    <div class="ld-mark">V</div>
     <div class="ld-title">Vani-Setu</div>
-    <div class="ld-spin"></div>
-    <div class="ld-msg">Loading AI hand detection model...</div>
+    <div class="ld-bar"><i></i></div>
+    <div class="ld-msg">Loading hand-tracking model&hellip;</div>
   </div>
 
-  <!-- PERMISSION -->
+  <!-- LANDING / PERMISSION -->
   <div id="perm" class="gone">
-    <h2>Vani-Setu</h2>
-    <p>Real-time ASL sign language translator that bridges voice and gesture. Uses your camera locally — no data leaves your device.</p>
-    <button class="start-btn" id="startBtn">Start Camera</button>
+    <div class="hero">
+      <div class="hero-eyebrow"><span class="pulse-dot"></span> Real-time &middot; On-device &middot; Private</div>
+      <h1 class="hero-title">Where <em>gesture</em><br>becomes <em>voice</em>.</h1>
+      <p class="hero-sub">
+        Vani-Setu translates American Sign Language into text and speech the moment you sign &mdash;
+        using only your webcam. Nothing leaves your device.
+      </p>
+      <div class="hero-cta">
+        <button class="start-btn" id="startBtn">
+          <span>Start Camera</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </button>
+        <span class="hero-hint" id="permHint">Your browser will ask for camera access</span>
+      </div>
+      <div class="hero-feats">
+        <div class="hf"><b>18</b><span>phrases</span></div>
+        <div class="hf"><b>19</b><span>letters spelled</span></div>
+        <div class="hf"><b>21</b><span>landmarks tracked</span></div>
+        <div class="hf"><b>0</b><span>bytes uploaded</span></div>
+      </div>
+    </div>
   </div>
 
   <!-- APP -->
-  <div id="app" style="opacity:0;transition:opacity 0.6s;">
-    <header>
-      <div class="logo">
-        <span class="logo-icon">&#129295;</span>
-        <span class="logo-text">Vani-Setu</span>
+  <div id="app" style="opacity:0;">
+    <header class="top">
+      <div class="brand">
+        <span class="brand-mark">V</span>
+        <div>
+          <div class="brand-name">Vani-Setu</div>
+          <div class="brand-sub">Bridging voice &amp; sign language</div>
+        </div>
       </div>
-      <div class="tagline">Bridging Voice &amp; Sign Language</div>
+      <div class="top-meta">
+        <span class="chip" title="Frames per second"><i class="dot live"></i><span id="fpsVal">--</span> FPS</span>
+        <span class="chip" title="Session time"><span id="timerVal">00:00</span></span>
+        <button class="icon-btn" id="btnGuide" title="Sign guide (G)" aria-label="Open sign guide">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 19V5"/></svg>
+          <span>Guide</span>
+        </button>
+      </div>
     </header>
 
     <main>
@@ -43,27 +74,35 @@
         <div class="cam-wrap" id="camWrap">
           <video id="webcam" autoplay playsinline muted></video>
           <canvas id="canvas"></canvas>
+          <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
           <div class="badge mode-badge phrase" id="modeBadge">PHRASE</div>
           <div class="badge hand-badge none" id="handBadge">NO HAND</div>
+          <div class="cam-sign" id="camSign"></div>
         </div>
+
         <div class="finger-bar" id="fingers">
-          <div class="fing" id="f0">THUMB</div>
-          <div class="fing" id="f1">INDEX</div>
-          <div class="fing" id="f2">MIDDLE</div>
-          <div class="fing" id="f3">RING</div>
-          <div class="fing" id="f4">PINKY</div>
+          <div class="fing" id="f0"><i></i>Thumb</div>
+          <div class="fing" id="f1"><i></i>Index</div>
+          <div class="fing" id="f2"><i></i>Middle</div>
+          <div class="fing" id="f3"><i></i>Ring</div>
+          <div class="fing" id="f4"><i></i>Pinky</div>
         </div>
+
         <div class="toggle-row">
-          <div class="mode-pill">
-            <button class="pill-opt active-phrase" id="pillPhrase">PHRASE</button>
-            <button class="pill-opt" id="pillSpell">SPELL</button>
+          <div class="mode-pill" id="modePill">
+            <span class="pill-thumb" id="pillThumb"></span>
+            <button class="pill-opt active-phrase" id="pillPhrase">Phrases</button>
+            <button class="pill-opt" id="pillSpell">Spelling</button>
           </div>
         </div>
 
         <div class="card log-card">
-          <div class="log-label">PAST SESSIONS</div>
+          <div class="card-head">
+            <div class="label">Past sessions</div>
+            <button class="link-btn" id="btnRefresh" title="Refresh">Refresh</button>
+          </div>
           <div class="log-list" id="historyList">
-            <div class="log-placeholder">Loading saved sessions...</div>
+            <div class="log-placeholder">Loading saved sessions&hellip;</div>
           </div>
         </div>
       </section>
@@ -71,35 +110,38 @@
       <!-- RIGHT: Info -->
       <section class="info-col">
         <div class="sign-card" id="signCard">
-          <div class="sign-label">DETECTED SIGN</div>
-          <div class="sign-text" id="signText">...</div>
+          <div class="sign-top">
+            <div class="label">Detected sign</div>
+            <div class="conf" id="confTxt">0%</div>
+          </div>
+          <div class="sign-text" id="signText">&hellip;</div>
           <div class="sign-desc" id="signDesc">Show your hand to begin</div>
+          <div class="hold"><i id="holdBar"></i></div>
+          <div class="hold-lbl">Hold steady to lock in</div>
         </div>
 
         <div class="card trans-card">
-          <div class="trans-label">TRANSLATION</div>
-          <div class="trans-text" id="transText">Show signs to translate...<span class="cur"></span></div>
-        </div>
-
-        <div class="word-bar">
-          <span class="wl">WORD:</span>
-          <span class="wt" id="wordText">...</span>
+          <div class="card-head">
+            <div class="label accent">Translation</div>
+            <div class="mini-actions">
+              <button class="link-btn" id="btnCopy">Copy</button>
+              <button class="link-btn" id="btnSave">Download</button>
+            </div>
+          </div>
+          <div class="trans-text" id="transText">Show signs to translate&hellip;<span class="cur"></span></div>
+          <div class="word-bar">
+            <span class="wl">Current word</span>
+            <span class="wt" id="wordText">&hellip;</span>
+          </div>
         </div>
 
         <div class="ctrl-row">
-          <button class="btn btn-gold" id="btnSpeak">Speak</button>
+          <button class="btn btn-primary" id="btnSpeak">Speak</button>
           <button class="btn" id="btnSpace">Space</button>
           <button class="btn" id="btnDel">Delete</button>
-          <button class="btn" id="btnEnter">Sentence</button>
+          <button class="btn" id="btnEnter">Finish sentence</button>
           <button class="btn" id="btnClear">Clear</button>
           <button class="btn btn-voice" id="btnVoice">Voice ON</button>
-        </div>
-
-        <div class="card log-card">
-          <div class="log-label">ACTIVITY LOG</div>
-          <div class="log-list" id="logList">
-            <div class="log-placeholder" id="logPlaceholder">Detected signs will appear here...</div>
-          </div>
         </div>
 
         <div class="stats-bar">
@@ -108,13 +150,37 @@
           <div class="stat"><span class="stat-num" id="stSent">0</span><span class="stat-lbl">Sentences</span></div>
         </div>
 
+        <div class="card log-card">
+          <div class="card-head"><div class="label">Activity log</div></div>
+          <div class="log-list" id="logList">
+            <div class="log-placeholder" id="logPlaceholder">Detected signs will appear here&hellip;</div>
+          </div>
+        </div>
+
         <div class="kb">
-          <kbd>M</kbd> Mode <kbd>Space</kbd> Word <kbd>Enter</kbd> Sentence
-          <kbd>V</kbd> Voice <kbd>S</kbd> Speak <kbd>C</kbd> Clear
+          <span><kbd>M</kbd> Mode</span><span><kbd>Space</kbd> Word</span><span><kbd>Enter</kbd> Sentence</span>
+          <span><kbd>V</kbd> Voice</span><span><kbd>S</kbd> Speak</span><span><kbd>C</kbd> Clear</span><span><kbd>G</kbd> Guide</span>
         </div>
       </section>
     </main>
   </div>
+
+  <!-- SIGN GUIDE DRAWER -->
+  <div id="guide" class="guide" aria-hidden="true">
+    <div class="guide-backdrop" id="guideBackdrop"></div>
+    <aside class="guide-panel" role="dialog" aria-label="Sign guide">
+      <div class="guide-head">
+        <div>
+          <div class="guide-title">Sign guide</div>
+          <div class="guide-sub" id="guideSub">Phrases you can sign right now</div>
+        </div>
+        <button class="icon-btn" id="guideClose" aria-label="Close guide">&times;</button>
+      </div>
+      <div class="guide-grid" id="guideGrid"></div>
+    </aside>
+  </div>
+
+  <div id="toasts" aria-live="polite"></div>
 
   <script type="module" src="js/app.js"></script>
 </body>
