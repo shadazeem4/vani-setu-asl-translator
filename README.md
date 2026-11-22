@@ -1,92 +1,77 @@
-# Vani-Setu — ASL Sign Language Translator
+# Vani-Setu — local ASL fingerspelling prototype
 
-Real-time American Sign Language translator that bridges voice and gesture.
-Hand tracking runs entirely in the browser (MediaPipe HandLandmarker) — a
-FastAPI backend serves the app and persists translation history to SQLite.
+The chosen scope is laptop-only, bounded vocabulary with measured evaluation.
+This build recognizes **24 static ASL letters (A–Z except J/Z)** using a trained
+ONNX model. It does not recognize arbitrary ASL words or translate continuous
+ASL sentences. Camera phrase heuristics have been disabled instead of presenting
+untrained gesture guesses as ASL. Letter scores are not measured accuracy.
 
-Two modes:
-- **PHRASE mode** — ~15 common words/phrases (Hello, Yes, No, I Love You, ...)
-- **SPELL mode** — ASL alphabet fingerspelling
+- Camera → English: hold a supported letter; lower your hand before repeating it.
+  Use Space to build words, Finish sentence to save, and Speak for audio output.
+- English → stick figure: schematic gesture cues and fingerspelling, including
+  names. This output still needs ASL signer validation and is not a validated
+  ASL production model. It does not preserve full ASL grammar or facial markers.
+- Voice → English: local Whisper transcription, then the same schematic output.
+- Evaluation: select the intended letter in the camera test panel and record
+  labeled trials. Export contains hand coordinates, predictions and labels, no
+  video. Accuracy is initially unmeasured, never a hard-coded percentage.
 
-Features: live hand-landmark overlay, per-finger state indicators, sentence
-building, text-to-speech (Web Speech API), an activity log, and a saved
-"past sessions" history backed by the API.
+Run `setup-speech.bat` for both speech and ASL dependencies/models, then `run.bat`.
+The local model is installed in this checkout. Restart an already running server.
+Models run on CPU; no cloud GPU is used. MediaPipe JS/WASM still need jsDelivr.
+Camera images stay in the browser; landmarks go to the local backend.
 
-A standalone OpenCV desktop version is also included as an alternative to
-the web app.
+## Verification
 
-## Project layout
+Local CPU model smoke test: 20 warm inferences, median 6.57 ms, on synthetic
+landmarks. **This is a speed measurement, not recognition accuracy.**
+No labeled real-signer dataset is included, so real-camera accuracy remains
+unmeasured until trials are collected. For meaningful evaluation, use separate
+signers/sessions, varied lighting, unsupported poses and all supported letters.
+Record failed/rejected attempts too; do not repeatedly sample one successful pose.
 
-```
-vani-setu/
-├── frontend/           client-side app (HTML/CSS/JS, MediaPipe in-browser)
-├── backend/             FastAPI server: serves the frontend, the hand model,
-│                        and the translation-history API
-├── desktop/              OpenCV + pyttsx3 desktop version
-├── docs/                team presentation / reference material
-├── LICENSE
-└── citation.cff
-```
+From the parent workspace: `node vani-setu/tests/frontend.test.cjs`.
+From this folder: `.venv/Scripts/python tests/evaluate_asl.py <exported-trials.json>`.
+The evaluator reruns the installed model and reports accuracy, rejection rate,
+class coverage and a confusion matrix on those labeled samples.
 
-## Running the web app
+## Model provenance and remaining work
 
-```bash
-cd backend
-pip install -r requirements.txt
-python app.py
-```
+Source/model: https://github.com/punpuniacitizen/MediaPipe-ASL-sign-language-recognition
+See `backend/vendor/asl/README.md` and `LICENSE` for attribution and separate
+model/data licensing. The model file is ignored by Git and verified during setup.
+Only static letters are enabled; thresholds reject low-score/ambiguous candidates,
+but high scores can still be wrong on unfamiliar inputs. This is not a reliable
+out-of-distribution detector.
 
-Then open **http://localhost:8000** in Chrome or Edge and click **Start
-Camera**. The browser will ask for camera permission — allow it for hand
-tracking to work. No microphone permission is needed (speech is
-text-to-speech output only, not speech recognition).
+To support a real word vocabulary, a separate temporal model and labeled two-hand,
+body and face sequences are needed, plus verified motion clips for stick-figure
+output. Alphabet recognition and schematic animations do not fulfill that work.
+A sentence research candidate is https://github.com/HGardner1108/SpaMo-Sign-VLA,
+whose documented standard inference requirement exceeds this laptop's 6 GB GPU.
+The user selected the bounded local path instead.
 
-The server serves the frontend, the local `hand_landmarker.task` model
-(so hand detection works fully offline after the first load, without
-depending on Google's CDN), and the translation-history API.
+## Files and startup
 
-### API
+`frontend/`: browser UI and camera landmark tracking.
+`backend/`: FastAPI, SQLite history, local ASL and Whisper inference.
+`tests/`: regression checks and labeled-trial evaluation.
+`desktop/`: older separate prototype, not used by run.bat; its rule-based
+recognition is not the trained web model.
 
-| Method | Route                     | Description                        |
-|--------|---------------------------|-------------------------------------|
-| GET    | `/api/health`              | Health check                       |
-| GET    | `/api/translations`        | List saved translations            |
-| POST   | `/api/translations`        | Save a completed sentence          |
-| DELETE | `/api/translations/{id}`   | Delete a saved translation         |
+Open http://localhost:8000 after running run.bat. Use localhost, not file://.
+The camera supports one visible hand at a time. Switch modes to release devices.
 
-Saved sentences persist in `backend/translations.db` (SQLite) across server
-restarts.
+## APIs
 
-## Controls
+- GET /api/health: server health.
+- GET /api/asl/status: installed-model readiness and supported letters.
+- POST /api/asl/recognize: 21 x/y hand landmarks and frame dimensions.
+- POST /api/speech?language=en: short audio recording; hi also supported.
+- GET/POST /api/translations: saved sentences.
+- DELETE /api/translations/{id}: remove a saved sentence.
 
-| Key       | Action                    |
-|-----------|---------------------------|
-| `M`       | Toggle Phrase / Spell mode |
-| `Space`   | Commit current word        |
-| `Backspace` | Delete last letter/word   |
-| `C`       | Clear sentence             |
-| `V`       | Toggle voice on/off        |
-| `S`       | Speak current sentence     |
-| `Enter`   | Finish sentence (saves it) |
-
-## Running the desktop app
-
-```bash
-cd desktop
-pip install -r requirements.txt
-python sign_language_app.py
-```
-
-Opens an OpenCV window with the webcam feed and a translator panel. Same
-classification logic and controls as the web app (keyboard-driven; press
-`Q` to quit). On first run it downloads `hand_landmarker.task` next to the
-script if not already present.
-
-## Credits
-
-Originally based on [Sign-Language-Interpreter-using-Deep-Learning](https://github.com/harshbg/Sign-Language-Interpreter-using-Deep-Learning)
-by **harshbg** (Harsh Gupta), licensed under MIT (see [LICENSE](LICENSE)).
-The legacy color-histogram/CNN training pipeline from that project was
-removed; the current app is a from-scratch MediaPipe hand-landmark
-classifier for both phrase and fingerspelling recognition, split into a
-web app (FastAPI + browser-side MediaPipe) and a desktop app (OpenCV).
+History is stored in backend/translations.db. Audio recordings are not saved.
+The browser offers English and Hindi speech recognition; Hindi text does not
+constitute ASL translation. Setup downloads models once; local inference does
+not use a speech cloud service.

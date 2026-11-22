@@ -3,13 +3,16 @@ persists translation history to SQLite."""
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from typing import Annotated
 
+from starlette.concurrency import run_in_threadpool
 import db
+import speech
 
 BASE_DIR = Path(__file__).parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
@@ -50,6 +53,65 @@ def on_startup():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+class HandSample(BaseModel):
+    points: Annotated[list[tuple[float, float]], Field(min_length=21, max_length=21)]
+    width: int = Field(ge=64, le=4096)
+    height: int = Field(ge=64, le=4096)
+
+
+@app.get("/api/asl/status")
+def asl_status():
+    try:
+        import asl_model
+        asl_model.session()
+        return {"ready": True, "supported": asl_model.SUPPORTED,
+                "kind": "static ASL letters", "threshold": asl_model.THRESHOLD,
+                "measured_accuracy": None}
+    except Exception:
+        return {"ready": False, "detail": "Local ASL model unavailable. Run setup-speech.bat and restart run.bat."}
+
+
+@app.post("/api/asl/recognize")
+def recognize_hand(sample: HandSample):
+    try:
+        import asl_model
+        if any(not (-0.5 <= x <= 1.5 and -0.5 <= y <= 1.5) for x, y in sample.points):
+            raise HTTPException(400, "Invalid hand coordinates")
+        return asl_model.predict(sample.points, sample.width, sample.height)
+    except HTTPException:
+        raise
+    except ValueError as error:
+        raise HTTPException(400, str(error))
+    except Exception:
+        raise HTTPException(503, "ASL recognition unavailable. Restart using run.bat.")
+
+
+@app.post("/api/speech")
+async def recognize_speech(request: Request, language: str = "en"):
+    if language not in {"en", "hi"}:
+        raise HTTPException(400, "Unsupported speech language")
+    # Accept only same-origin browser requests to this local service.
+    origin = request.headers.get("origin")
+    if origin and origin != str(request.base_url).rstrip("/"):
+        raise HTTPException(403, "Use the microphone from the app page")
+    audio = bytearray()
+    async for chunk in request.stream():
+        audio.extend(chunk)
+        if len(audio) > 6 * 1024 * 1024:
+            raise HTTPException(413, "Recording too large. Keep it under 30 seconds.")
+    if not audio:
+        raise HTTPException(400, "No microphone audio received")
+    try:
+        text = await run_in_threadpool(speech.transcribe, bytes(audio), language)
+    except ImportError:
+        raise HTTPException(503, "Local speech is not installed. Run setup-speech.bat, then restart with run.bat.")
+    except RuntimeError as error:
+        raise HTTPException(503, str(error))
+    except Exception:
+        raise HTTPException(422, "Could not decode this recording. Please record again.")
+    return {"text": text}
 
 
 @app.post("/api/translations")

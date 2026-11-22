@@ -10,6 +10,8 @@ echo.
 REM Pick python or py, whichever exists
 where python >nul 2>nul && (set PY=python) || (set PY=py)
 
+if exist "%~dp0.venv\Scripts\python.exe" set PY="%~dp0.venv\Scripts\python.exe"
+
 REM Open the app in the default browser once the server is up.
 REM The ?t=%RANDOM% forces the browser to load a fresh copy (no old cache).
 start "" "http://localhost:8000/?t=%RANDOM%"

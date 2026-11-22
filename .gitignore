@@ -21,3 +21,7 @@ node_modules/
 Thumbs.db
 .vscode/
 .idea/
+
+backend/models/whisper-tiny/
+
+backend/models/asl_cnn_model.onnx
