@@ -2,15 +2,27 @@
 
 // ============ BACKEND API ============
 const API_BASE = '/api';
+const BROWSER_HISTORY = !!window.location && !['localhost','127.0.0.1','[::1]'].includes(window.location.hostname);
+const HISTORY_KEY = 'vani-setu-history';
+function browserHistory(){
+  const rows = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+  return Array.isArray(rows) ? rows : [];
+}
 async function apiSaveTranslation(text, mode){
+  if(BROWSER_HISTORY){
+    try{ const row={id:crypto.randomUUID(),text,mode,timestamp:new Date().toISOString()};localStorage.setItem(HISTORY_KEY,JSON.stringify([...browserHistory(),row].slice(-200)));return row; }
+    catch(e){console.warn('[history] save:',e.message);return null;}
+  }
   try{ const res=await fetch(`${API_BASE}/translations`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,mode,timestamp:new Date().toISOString()})}); if(!res.ok)throw new Error(res.status); return await res.json(); }
   catch(e){ console.warn('[api] save:',e.message); return null; }
 }
 async function apiGetTranslations(){
+  if(BROWSER_HISTORY){try{return browserHistory();}catch(e){return [];}}
   try{ const res=await fetch(`${API_BASE}/translations`); if(!res.ok)throw new Error(res.status); return await res.json(); }
   catch(e){ console.warn('[api] load:',e.message); return []; }
 }
 async function apiDeleteTranslation(id){
+  if(BROWSER_HISTORY){try{localStorage.setItem(HISTORY_KEY,JSON.stringify(browserHistory().filter(row=>row.id!==id)));return true;}catch(e){return false;}}
   try{ const res=await fetch(`${API_BASE}/translations/${id}`,{method:'DELETE'}); return res.ok; }
   catch(e){ console.warn('[api] del:',e.message); return false; }
 }

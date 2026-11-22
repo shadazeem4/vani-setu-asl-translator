@@ -2,6 +2,7 @@
 persists translation history to SQLite."""
 
 from pathlib import Path
+import os
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +20,7 @@ FRONTEND_DIR = BASE_DIR.parent / "frontend"
 MODELS_DIR = BASE_DIR / "models"
 
 app = FastAPI(title="Vani-Setu API")
+PUBLIC_DEMO = os.getenv("VANI_PUBLIC_DEMO", "false").lower() == "true"
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,7 +49,8 @@ class TranslationIn(BaseModel):
 
 @app.on_event("startup")
 def on_startup():
-    db.init_db()
+    if not PUBLIC_DEMO:
+        db.init_db()
 
 
 @app.get("/api/health")
@@ -116,6 +119,8 @@ async def recognize_speech(request: Request, language: str = "en"):
 
 @app.post("/api/translations")
 def create_translation(payload: TranslationIn):
+    if PUBLIC_DEMO:
+        raise HTTPException(403, "Hosted history is stored in your browser only")
     if not payload.text.strip():
         raise HTTPException(status_code=400, detail="text must not be empty")
     return db.create_translation(payload.text, payload.mode, payload.timestamp)
@@ -123,11 +128,15 @@ def create_translation(payload: TranslationIn):
 
 @app.get("/api/translations")
 def get_translations():
+    if PUBLIC_DEMO:
+        raise HTTPException(403, "Hosted history is stored in your browser only")
     return db.list_translations()
 
 
 @app.delete("/api/translations/{translation_id}")
 def remove_translation(translation_id: int):
+    if PUBLIC_DEMO:
+        raise HTTPException(403, "Hosted history is stored in your browser only")
     if not db.delete_translation(translation_id):
         raise HTTPException(status_code=404, detail="translation not found")
     return {"deleted": translation_id}

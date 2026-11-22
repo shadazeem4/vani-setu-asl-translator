@@ -6,4 +6,4 @@ faster-whisper==1.2.1
 av==16.0.1
 
 onnxruntime>=1.14,<2
-opencv-python>=4.10
+opencv-python-headless>=4.10

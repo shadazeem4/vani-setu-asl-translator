@@ -75,3 +75,23 @@ History is stored in backend/translations.db. Audio recordings are not saved.
 The browser offers English and Hindi speech recognition; Hindi text does not
 constitute ASL translation. Setup downloads models once; local inference does
 not use a speech cloud service.
+
+## Render hosting
+
+Deploy as one Python web service from the repository root. Python 3.11 is
+selected by `.python-version`.
+
+- Build: `pip install -r backend/requirements.txt && python backend/setup_asl.py && python backend/setup_speech.py`
+- Start: `uvicorn app:app --app-dir backend --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'`
+- Environment: `VANI_PUBLIC_DEMO=true`, `OMP_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`.
+- Health endpoint: `/api/health`.
+
+The hosted version sends hand landmarks and microphone audio to the Render
+server for recognition. Camera frames remain in the browser; audio is not saved.
+Hosted history is stored in each browser (up to 200 entries), and the shared
+server history API is disabled. Clearing browser data removes that history.
+Localhost runs retain their existing SQLite history.
+
+The free compute plan is intended for demos and sleeps when idle. Speech model
+inference may be slow or exceed available memory; a larger compute plan may be
+needed for regular speech use. No measured real-signer accuracy is claimed.
